@@ -4,7 +4,7 @@ import logging
 
 from pymongo import MongoClient
 import boto3 as boto
-from bson.json_util import dumps
+from bson.json_util import dumps, JSONOptions, DatetimeRepresentation
 
 LOGGER = logging.getLogger()
 LOGGER.setLevel(logging.INFO)
@@ -51,10 +51,11 @@ def handler(event, context):
         name for name in database.collection_names() if not name in skip
     ]
 
+    json_options = JSONOptions(datetime_representation=DatetimeRepresentation.ISO8601)
     for collection_name in eligible_collections:
         with open(temp_filepath, "w") as f:
             for doc in database.get_collection(collection_name).find():
-                f.write(dumps(doc) + "\n")
+                f.write(dumps(doc, json_options=json_options) + "\n")
 
         s3.Bucket(bucket_name).upload_file(
             temp_filepath, "{}/{}.json".format(bucket_folder, collection_name)
