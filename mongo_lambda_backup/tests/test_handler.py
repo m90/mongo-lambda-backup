@@ -4,6 +4,7 @@ from os import environ
 from json import loads
 
 import boto3 as boto
+from botocore.exceptions import ClientError
 from moto import mock_s3
 from mongomock import MongoClient as MockMongoClient
 
@@ -16,7 +17,11 @@ def test_ok():
 
 @patch.dict(
     environ,
-    {"BUCKET_NAME": "mongo-lambda-backup", "MONGO_URI": "mongodb://localhost/test-db"},
+    {
+        "BUCKET_NAME": "mongo-lambda-backup",
+        "MONGO_URI": "mongodb://localhost/test-db",
+        "COLLECTION_BLACKLIST": "skip,skip2",
+    },
 )
 @mock_s3
 class TestHandler(unittest.TestCase):
@@ -29,6 +34,10 @@ class TestHandler(unittest.TestCase):
         database.create_collection("unittest")
         database["unittest"].insert_one({"this": "is", "data": ["some"]})
         database["unittest"].insert_one({"this": "is", "data": ["other"]})
+
+        database.create_collection("skip")
+        database["skip"].insert_one({"key": 1})
+        database["skip"].insert_one({"key": 2})
 
     @patch("mongo_lambda_backup.handler.MongoClient")
     def test_handler(self, mock_constructor):
@@ -48,3 +57,9 @@ class TestHandler(unittest.TestCase):
                 assert doc.get("_id")
                 assert doc.get("this")
                 assert doc.get("data")
+        try:
+            self.conn.Object("mongo-lambda-backup", "backups/skip.json").get()
+        except ClientError:
+            pass
+        else:
+            assert False
