@@ -48,7 +48,7 @@ def handler(event, context):
         else []
     )
     eligible_collections = [
-        name for name in database.list_collection_names() if not name in skip
+        name for name in database.collection_names() if not name in skip
     ]
 
     for collection_name in eligible_collections:

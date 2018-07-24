@@ -1,4 +1,5 @@
 # mongo-lambda-backup
+[![Build Status](https://travis-ci.org/m90/mongo-lambda-backup.svg?branch=master)](https://travis-ci.org/m90/mongo-lambda-backup)
 > Backup MongoDB databases using AWS Lambda functions
 
 The code in this repo allows running the backup of a MongoDB database to S3 on AWS Lambda by emulating a `mongodump` using `pymongo` and `boto3`. By default the function will create a JSON file for every collection in the database and save them in a `/backup` folder.
