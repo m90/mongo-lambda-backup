@@ -4,6 +4,14 @@
 
 The code in this repo allows running the backup of a MongoDB database to S3 on AWS Lambda by emulating a `mongodump` using `pymongo` and `boto3`. By default the function will create a JSON file for every collection in the database and save them in a `/backup` folder.
 
+## Install from pip
+
+```
+pip install mongo_lambda_backup
+```
+
+## Configuration
+
 All configuration values are passed using environment variables.
 
 The following values are required:
