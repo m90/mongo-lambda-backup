@@ -11,10 +11,6 @@ from mongomock import MongoClient as MockMongoClient
 from mongo_lambda_backup.handler import handler
 
 
-def test_ok():
-    assert True
-
-
 @patch.dict(
     environ,
     {
