@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="mongo_lambda_backup",
-    version="0.1.0",
+    version="0.2.0",
     author="Frederik Ring",
     author_email="frederik.ring@gmail.com",
     description="Backup MongoDB databases using AWS Lambda functions",

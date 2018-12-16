@@ -1,5 +1,4 @@
 from os import environ
-from urllib.parse import urlparse
 import logging
 
 from pymongo import MongoClient
@@ -26,8 +25,17 @@ def handler(event, context):
     bucket_name = environ["BUCKET_NAME"]
     db_uri = environ["MONGO_URI"]
 
+    if environ.get("MONGO_URI_IS_ENCRYPTED"):
+        from base64 import b64decode
+
+        kms = boto.client("kms")
+        decrypted = kms.decrypt(CiphertextBlob=b64decode(db_uri))
+        db_uri = decrypted["Plaintext"].decode()
+
     db_name = environ.get("MONGO_DATABASE")
     if db_name is None:
+        from urllib.parse import urlparse
+
         loc = urlparse(db_uri)
         db_name = loc.path.strip("/")
 
@@ -60,3 +68,5 @@ def handler(event, context):
         s3.Bucket(bucket_name).upload_file(
             temp_filepath, "{}/{}.json".format(bucket_folder, collection_name)
         )
+
+        LOGGER.info("Done backing up collection {}".format(collection_name))
