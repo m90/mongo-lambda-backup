@@ -16,7 +16,7 @@ All configuration values are passed using environment variables.
 
 The following values are required:
 
-- `MONGO_URI`: The URI including authentication credentials of the MongoDB host to be backed up.
+- `MONGO_URI`: The URI (including authentication credentials if needed) of the MongoDB host to be backed up. In case this **contains credentials** you can encrypt this value using AWS KMS and set `MONGO_URI_IS_ENCRYPTED` to tell the Lambda it needs to decrypt the given value.
 - `BUCKET_NAME`: The name of the S3 bucket to store the backup files in.
 
 The following values are optional:
@@ -24,7 +24,7 @@ The following values are optional:
 - `MONGO_URI_IS_ENCRYPTED`: In case this environment variable is set, the handler assumes the URI (which potentially contains credentials) needs to be encrypted using the KMS key associated with the Lambda.
 - `MONGO_DATABASE`: The name of the database to back up. In case this is not set, it will be read from the path of `MONGO_URI`.
 - `BUCKET_FOLDER`: The folder in the bucket to store the JSON files in. Defaults to `backups`.
-- `COLLECTION_BLACKLIST`: A comma-separated collection of collection names to skip when performing the back up (e.g. for skipping indices).
+- `COLLECTION_BLACKLIST`: A comma-separated collection of collection names to skip when performing the back up (e.g. for skipping indices or vendor specific databases).
 
 ### License
 MIT © [Frederik Ring](http://www.frederikring.com)
