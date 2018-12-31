@@ -25,7 +25,7 @@ The following values are optional:
 - `MONGO_DATABASE`: The name of the database to back up. In case this is not set, it will be read from the path of `MONGO_URI`.
 - `BUCKET_FOLDER`: The folder in the bucket to store the JSON files in. Defaults to `backups`.
 - `COLLECTION_BLACKLIST`: A comma-separated collection of collection names to skip when performing the back up (e.g. for skipping indices or vendor specific databases).
-- `IN_MEMORY`: If set, the collection to be dumped to S3 will be handled in the Lambda's memory before writing. This might affect both backup speed as well as Lambda Limits in certain scenarios.
+- `IN_MEMORY`: If set, the collection to be dumped to S3 will be buffered solely in the Lambda's memory before writing (instead of being temporarily saved to disk). This might affect both backup speed as well as Lambda Limits in certain scenarios.
 
 ### License
 MIT © [Frederik Ring](http://www.frederikring.com)
