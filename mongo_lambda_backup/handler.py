@@ -1,4 +1,5 @@
 from os import environ
+from io import StringIO
 import logging
 
 from pymongo import MongoClient
@@ -10,6 +11,8 @@ LOGGER.setLevel(logging.INFO)
 
 s3 = boto.resource("s3")
 
+temp_filepath = "/tmp/mongodump.json"
+
 
 def handler(event, context):
     """
@@ -18,8 +21,6 @@ def handler(event, context):
     Required environment values are MONGO_URI, BUCKET_NAME. Optionally
     MONGO_DATABASE, BUCKET_FOLDER and COLLECTION_BLACKLIST can be set.
     """
-
-    temp_filepath = "/tmp/mongodump.json"
     collection_blacklist = environ.get("COLLECTION_BLACKLIST")
     bucket_folder = environ.get("BUCKET_FOLDER", "backups")
     bucket_name = environ["BUCKET_NAME"]
@@ -60,13 +61,27 @@ def handler(event, context):
     ]
 
     json_options = JSONOptions(datetime_representation=DatetimeRepresentation.ISO8601)
-    for collection_name in eligible_collections:
-        with open(temp_filepath, "w") as f:
-            for doc in database.get_collection(collection_name).find():
-                f.write(dumps(doc, json_options=json_options) + "\n")
 
-        s3.Bucket(bucket_name).upload_file(
-            temp_filepath, "{}/{}.json".format(bucket_folder, collection_name)
-        )
+    def write_all_docs(collection_name, writer):
+        for doc in database.get_collection(collection_name).find():
+            writer.write(dumps(doc, json_options=json_options) + "\n")
+
+    for collection_name in eligible_collections:
+        if environ.get("IN_MEMORY"):
+            writer = StringIO()
+            write_all_docs(collection_name, writer)
+
+            s3.Bucket(bucket_name).put_object(
+                Body=writer.getvalue().encode(),
+                Key="{}/{}.json".format(bucket_folder, collection_name),
+            )
+
+        else:
+            with open(temp_filepath, "w") as writer:
+                write_all_docs(collection_name, writer)
+
+            s3.Bucket(bucket_name).upload_file(
+                temp_filepath, "{}/{}.json".format(bucket_folder, collection_name)
+            )
 
         LOGGER.info("Done backing up collection {}".format(collection_name))
