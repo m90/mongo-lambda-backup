@@ -14,7 +14,7 @@ from mongo_lambda_backup.handler import handler
 @patch.dict(
     environ,
     {
-        "BUCKET_NAME": "mongo-lambda-backup",
+        "BUCKET_NAME": "mongo-lambda-backup-1",
         "MONGO_URI": "mongodb://localhost/test-db",
         "COLLECTION_BLACKLIST": "skip,skip2",
     },
@@ -23,7 +23,7 @@ from mongo_lambda_backup.handler import handler
 class TestHandler(unittest.TestCase):
     def setUp(self):
         self.conn = boto.resource("s3", region_name="eu-central-1")
-        self.conn.create_bucket(Bucket="mongo-lambda-backup")
+        self.conn.create_bucket(Bucket="mongo-lambda-backup-1")
 
         self.client = MockMongoClient("mongodb://localhost")
         database = self.client.get_database("test-db")
@@ -42,7 +42,7 @@ class TestHandler(unittest.TestCase):
         handler(None, None)
 
         body = (
-            self.conn.Object("mongo-lambda-backup", "backups/unittest.json")
+            self.conn.Object("mongo-lambda-backup-1", "backups/unittest.json")
             .get()["Body"]
             .read()
             .decode("utf-8")
@@ -53,8 +53,61 @@ class TestHandler(unittest.TestCase):
                 assert doc.get("_id")
                 assert doc.get("this")
                 assert doc.get("data")
+
         try:
-            self.conn.Object("mongo-lambda-backup", "backups/skip.json").get()
+            self.conn.Object("mongo-lambda-backup-1", "backups/skip.json").get()
+        except ClientError:
+            pass
+        else:
+            assert False
+
+
+@patch.dict(
+    environ,
+    {
+        "BUCKET_NAME": "mongo-lambda-backup-2",
+        "MONGO_URI": "mongodb://localhost/test-db",
+        "COLLECTION_BLACKLIST": "skip,skip2",
+        "IN_MEMORY": "True",
+    },
+)
+@mock_s3
+class TestHandlerInMemory(unittest.TestCase):
+    def setUp(self):
+        self.conn = boto.resource("s3", region_name="eu-central-1")
+        self.conn.create_bucket(Bucket="mongo-lambda-backup-2")
+
+        self.client = MockMongoClient("mongodb://localhost")
+        database = self.client.get_database("test-db")
+        database.create_collection("unittest")
+        database["unittest"].insert_one({"this": "is", "data": ["some"]})
+        database["unittest"].insert_one({"this": "is", "data": ["other"]})
+
+        database.create_collection("skip")
+        database["skip"].insert_one({"key": 1})
+        database["skip"].insert_one({"key": 2})
+
+    @patch("mongo_lambda_backup.handler.MongoClient")
+    def test_handler(self, mock_constructor):
+        mock_constructor.return_value = self.client
+
+        handler(None, None)
+
+        body = (
+            self.conn.Object("mongo-lambda-backup-2", "backups/unittest.json")
+            .get()["Body"]
+            .read()
+            .decode("utf-8")
+        )
+        for line in body.split("\n"):
+            if line:
+                doc = loads(line)
+                assert doc.get("_id")
+                assert doc.get("this")
+                assert doc.get("data")
+
+        try:
+            self.conn.Object("mongo-lambda-backup-2", "backups/skip.json").get()
         except ClientError:
             pass
         else:
